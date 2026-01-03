@@ -13,8 +13,10 @@ camera.position.set(0, 6, 10);
 
 /* RENDER */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-document.body.appendChild(renderer.domElement);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'low-power' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
 
 /* IŞIK */
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -40,18 +42,17 @@ createRoad(200);
 
 /* ŞERİTLER */
 const laneMarkers = [];
+const laneMarkerGeo = new THREE.BoxGeometry(0.4, 0.02, 5);
+const laneMarkerMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
 function laneLines(z) {
   for (let i = -10; i <= 10; i += 5) {
-    const line = new THREE.Mesh(
-      new THREE.BoxGeometry(0.4, 0.02, 5),
-      new THREE.MeshStandardMaterial({ color: 0xffffff })
-    );
+    const line = new THREE.Mesh(laneMarkerGeo, laneMarkerMat);
     line.position.set(i, 0.02, z);
     scene.add(line);
     laneMarkers.push(line);
   }
 }
-for (let z = -100; z < 300; z += 10) laneLines(z);
+for (let z = -50; z < 250; z += 15) laneLines(z);
 
 /* ŞEHİR */
 const buildings = [];
@@ -107,9 +108,9 @@ function spawnBuilding(x, z) {
   scene.add(group);
   buildings.push(group);
 }
-for (let z = 0; z < 400; z += 20) {
-  spawnBuilding(-20, z + Math.random() * 10);
-  spawnBuilding(20, z + Math.random() * 10);
+for (let z = 0; z < 400; z += 40) {
+  spawnBuilding(-20, z + Math.random() * 20);
+  spawnBuilding(20, z + Math.random() * 20);
 }
 
 /* ARABA MODELİ OLUŞTUR */
@@ -170,12 +171,28 @@ scene.add(player);
 /* TRAFİK */
 const traffic = [];
 const lanes = [-6, -2, 2, 6];
+const MAX_TRAFFIC = 10; // maximum concurrent traffic to reduce load
+const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 8);
+// Player state
+let playerHP = 100;
+let invulnerable = false;
+let gameOver = false;
+// update HUD initial
+const hpElInit = document.getElementById("hp");
+if (hpElInit) hpElInit.innerText = playerHP;
+
+// collision boxes (reused)
+const playerBox = new THREE.Box3();
+const tmpBox = new THREE.Box3();
 
 function createTraffic() {
   const color = Math.floor(Math.random() * 0xffffff);
   const car = createCarModel(color);
   car.position.x = lanes[Math.floor(Math.random() * lanes.length)];
-  car.position.z = player.position.z + 300 + Math.random() * 100;
+  if (traffic.length >= MAX_TRAFFIC) return;
+
+  car.position.x = lanes[Math.floor(Math.random() * lanes.length)];
+  car.position.z = player.position.z + 350 + Math.random() * 150;
   car.position.y = 0.4;
   car.userData = {
     speed: 0.2 + Math.random() * 0.35,
@@ -184,26 +201,76 @@ function createTraffic() {
   scene.add(car);
   traffic.push(car);
 }
-setInterval(createTraffic, 800);
+const trafficInterval = setInterval(createTraffic, 1400);
 
 /* KONTROLLER */
 let speed = 0,
   rot = 0;
 const keys = {};
 let km = 0;
-
-onkeydown = (e) => (keys[e.key.toLowerCase()] = true);
+const MAX_TRAFFIC = 6; // maximum concurrent traffic to reduce load
+const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 6);
 onkeyup = (e) => (keys[e.key.toLowerCase()] = false);
 
+// Mobile / touch controls binding
+function bindMobileControls() {
+  const map = [
+    { id: "gas", key: "w" },
+    { id: "brake", key: "s" },
+    { id: "left", key: "a" },
+    { id: "right", key: "d" },
+  const colorIndex = Math.floor(Math.random() * 6);
+  const car = createCarModel(colorIndex);
+  function setKey(k, v) {
+    keys[k] = v;
+  }
+
+  car.position.z = player.position.z + 400 + Math.random() * 200;
+    const el = document.getElementById(m.id);
+    if (!el) return;
+
+    const down = (e) => {
+      e.preventDefault();
+      setKey(m.key, true);
+    };
+    const up = (e) => {
+const trafficInterval = setInterval(createTraffic, 2000);
+      setKey(m.key, false);
+    };
+
+    el.addEventListener("touchstart", down, { passive: false });
+    el.addEventListener("touchend", up);
+    el.addEventListener("touchcancel", up);
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("mousedown", down);
+    el.addEventListener("mouseup", up);
+  });
+
+  // prevent gestures scrolling on the whole controls area
+  const controls = document.getElementById("mobile-controls");
+  if (controls) {
+    controls.addEventListener("touchstart", (e) => e.preventDefault(), {
+      passive: false,
+    });
+  }
+}
+
+// bind when DOM ready
+if (document.readyState === "complete" || document.readyState === "interactive")
+  bindMobileControls();
+else document.addEventListener("DOMContentLoaded", bindMobileControls);
+
 /* ÇARPIŞMA */
-// // function hit(a, b) {
-//   return (
-//     Math.abs(a.position.x - b.position.x) < 1.5 &&
-//     Math.abs(a.position.z - b.position.z) < 3.5
-//   );
-// }
+function hit(a, b) {
+  return (
+    Math.abs(a.position.x - b.position.x) < 1.5 &&
+    Math.abs(a.position.z - b.position.z) < 3.5
+  );
+}
 
 function animate() {
+  if (gameOver) return;
   requestAnimationFrame(animate);
 
   /* OYUNCU */
@@ -235,17 +302,43 @@ function animate() {
   /* TRAFİK AI */
   for (let i = traffic.length - 1; i >= 0; i--) {
     const t = traffic[i];
-    t.position.z += t.userData.speed;
+    // move traffic toward player
+    t.position.z -= t.userData.speed;
 
     if (Math.random() < 0.01) {
       t.userData.targetLane = lanes[Math.floor(Math.random() * lanes.length)];
     }
     t.position.x += (t.userData.targetLane - t.position.x) * 0.05;
 
-    // if (hit(player, t)) {
-    //   alert("💥 KAZA! KM: " + km.toFixed(2));
-    //   location.reload();
-    // }
+    // collision using bounding boxes for accuracy
+    playerBox.setFromObject(player);
+    tmpBox.setFromObject(t);
+    if (playerBox.intersectsBox(tmpBox)) {
+      if (!invulnerable) {
+        const damage = 25;
+        playerHP = Math.max(0, playerHP - damage);
+        const hpEl = document.getElementById("hp");
+        if (hpEl) hpEl.innerText = playerHP;
+
+        invulnerable = true;
+        // stun: stop movement briefly and push player and the traffic apart
+        speed = 0;
+        const pushBack = 4;
+        player.position.x -= Math.sin(player.rotation.y) * pushBack;
+        player.position.z -= Math.cos(player.rotation.y) * pushBack;
+        t.position.z -= 6; // move traffic back to avoid overlap
+
+        setTimeout(() => {
+          invulnerable = false;
+        }, 1000);
+
+        if (playerHP <= 0) {
+          gameOver = true;
+          clearInterval(trafficInterval);
+          alert("Oyun bitti! KM: " + km.toFixed(2));
+        }
+      }
+    }
 
     if (t.position.z < player.position.z - 50) {
       scene.remove(t);

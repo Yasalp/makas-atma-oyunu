@@ -2,6 +2,10 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1"
+    />
     <title>3D Trafikli Araba Oyunu</title>
     <style>
       body {
@@ -19,12 +23,53 @@
         padding: 8px 12px;
         border-radius: 8px;
       }
+      /* Mobile controls */
+      #mobile-controls {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+      }
+      #mobile-controls .group {
+        display: flex;
+        gap: 10px;
+        pointer-events: auto;
+      }
+      #mobile-controls button {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+        font-size: 28px;
+        touch-action: none;
+      }
+      #mobile-controls button:active {
+        background: rgba(255, 255, 255, 0.22);
+      }
     </style>
   </head>
   <body>
     <div id="hud">
       KM: <span id="km">0.0</span><br />
+      Can: <span id="hp">100</span><br />
       W A S D = Sür
+    </div>
+
+    <div id="mobile-controls" aria-hidden="false">
+      <div class="group" id="steer">
+        <button id="left">◀</button>
+        <button id="right">▶</button>
+      </div>
+      <div class="group" id="drive">
+        <button id="brake">▼</button>
+        <button id="gas">▲</button>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
