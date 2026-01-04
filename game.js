@@ -11,6 +11,39 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 6, 10);
 
+// Kamera kontrolü
+let isRightMouseDown = false;
+let mouseX = 0,
+  mouseY = 0;
+let camTheta = Math.PI,
+  camPhi = Math.PI / 4; // Başlangıçta arkadan
+const camDistance = 14;
+let cameraMode = 0; // 0: dış, 1: iç
+
+document.addEventListener("mousedown", (e) => {
+  if (e.button === 2) {
+    // Sağ tıklama
+    isRightMouseDown = true;
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    e.preventDefault();
+  }
+});
+document.addEventListener("mouseup", (e) => {
+  if (e.button === 2) isRightMouseDown = false;
+});
+document.addEventListener("mousemove", (e) => {
+  if (isRightMouseDown) {
+    const deltaX = e.clientX - mouseX;
+    const deltaY = e.clientY - mouseY;
+    camTheta -= deltaX * 0.01;
+    camPhi = Math.max(0.1, Math.min(Math.PI / 2, camPhi - deltaY * 0.01));
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  }
+});
+document.addEventListener("contextmenu", (e) => e.preventDefault()); // Sağ tıklama menüsünü engelle
+
 /* RENDER */
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -18,12 +51,23 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 /* IŞIK */
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const sun = new THREE.DirectionalLight(0xffffff, 0.8);
 sun.position.set(20, 30, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 500;
+sun.shadow.camera.left = -50;
+sun.shadow.camera.right = 50;
+sun.shadow.camera.top = 50;
+sun.shadow.camera.bottom = -50;
 scene.add(sun);
 
 /* YOL */
@@ -36,6 +80,7 @@ function createRoad(z) {
   road.rotation.x = -Math.PI / 2;
   road.position.z = z;
   road.position.y = 0.01;
+  road.receiveShadow = true;
   scene.add(road);
   roadPieces.push(road);
 }
@@ -58,6 +103,25 @@ for (let z = -50; z < 250; z += 15) laneLines(z);
 
 /* ŞEHİR (basit: pencere detayları yok) */
 const buildings = [];
+// Zemin ekle - sonsuz akış
+const groundPieces = [];
+const groundGeo = new THREE.PlaneGeometry(200, 200);
+const groundMat = new THREE.MeshStandardMaterial({
+  color: 0x228b22,
+  roughness: 0.8,
+});
+function createGround(z) {
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(0, 0, z);
+  ground.receiveShadow = true;
+  scene.add(ground);
+  groundPieces.push(ground);
+}
+createGround(0);
+createGround(200);
+createGround(400);
+
 function spawnBuilding(x, z) {
   const h = 6 + Math.random() * 30;
   const color = new THREE.Color(
@@ -76,18 +140,17 @@ function spawnBuilding(x, z) {
     h / 2,
     z + (Math.random() - 0.5) * 8
   );
+  main.castShadow = true;
+  main.receiveShadow = true;
   scene.add(main);
   buildings.push(main);
 }
-for (let z = 0; z < 400; z += 40) {
+for (let z = 0; z < 400; z += 80) {
   spawnBuilding(-20, z + Math.random() * 20);
   spawnBuilding(20, z + Math.random() * 20);
 }
 
 /* ARABA MODELİ - paylaşılan geometri/mat */
-const carBodyGeo = new THREE.BoxGeometry(2, 0.6, 4.2);
-const carCabinGeo = new THREE.BoxGeometry(1.4, 0.6, 2);
-const carWheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 6);
 const wheelMatShared = new THREE.MeshStandardMaterial({
   color: 0x111111,
   metalness: 0.8,
@@ -110,29 +173,115 @@ for (let i = 0; i < 6; i++)
     })
   );
 
-function createCarModel(colorIndex = 0) {
+const carTypes = [
+  {
+    name: "sedan",
+    bodyGeo: new THREE.BoxGeometry(2, 0.6, 4.2),
+    cabinGeo: new THREE.BoxGeometry(1.4, 0.6, 2),
+    wheelPos: [
+      [-0.9, 0.2, -1.6],
+      [0.9, 0.2, -1.6],
+      [-0.9, 0.2, 1.6],
+      [0.9, 0.2, 1.6],
+    ],
+    height: 0.4,
+  },
+  {
+    name: "suv",
+    bodyGeo: new THREE.BoxGeometry(2.2, 0.8, 4.5),
+    cabinGeo: new THREE.BoxGeometry(1.6, 0.7, 2.2),
+    wheelPos: [
+      [-1, 0.3, -1.8],
+      [1, 0.3, -1.8],
+      [-1, 0.3, 1.8],
+      [1, 0.3, 1.8],
+    ],
+    height: 0.5,
+  },
+  {
+    name: "truck",
+    bodyGeo: new THREE.BoxGeometry(2.5, 1, 6),
+    cabinGeo: new THREE.BoxGeometry(1.8, 0.8, 2.5),
+    wheelPos: [
+      [-1.1, 0.4, -2.5],
+      [1.1, 0.4, -2.5],
+      [-1.1, 0.4, 2.5],
+      [1.1, 0.4, 2.5],
+    ],
+    height: 0.6,
+  },
+  {
+    name: "bus",
+    bodyGeo: new THREE.BoxGeometry(2.8, 1.2, 8),
+    cabinGeo: new THREE.BoxGeometry(2, 1, 3),
+    wheelPos: [
+      [-1.2, 0.5, -3.5],
+      [1.2, 0.5, -3.5],
+      [-1.2, 0.5, 3.5],
+      [1.2, 0.5, 3.5],
+    ],
+    height: 0.7,
+  },
+  {
+    name: "hatchback",
+    bodyGeo: new THREE.BoxGeometry(1.8, 0.5, 3.8),
+    cabinGeo: new THREE.BoxGeometry(1.2, 0.5, 1.8),
+    wheelPos: [
+      [-0.8, 0.2, -1.4],
+      [0.8, 0.2, -1.4],
+      [-0.8, 0.2, 1.4],
+      [0.8, 0.2, 1.4],
+    ],
+    height: 0.3,
+  },
+];
+
+function createCarModel(typeIndex = 0) {
+  const type = carTypes[typeIndex % carTypes.length];
   const g = new THREE.Group();
   const body = new THREE.Mesh(
-    carBodyGeo,
-    bodyMats[colorIndex % bodyMats.length]
+    type.bodyGeo,
+    bodyMats[typeIndex % bodyMats.length]
   );
-  body.position.y = 0.4;
+  body.position.y = type.height;
+  body.castShadow = true;
   g.add(body);
-  const cabin = new THREE.Mesh(carCabinGeo, cabinMatShared);
-  cabin.position.set(0, 0.8, -0.2);
+  const cabin = new THREE.Mesh(type.cabinGeo, cabinMatShared);
+  cabin.position.set(0, type.height + 0.4, -0.2);
+  cabin.castShadow = true;
   g.add(cabin);
-  const wheelPositions = [
-    [-0.9, 0.2, -1.6],
-    [0.9, 0.2, -1.6],
-    [-0.9, 0.2, 1.6],
-    [0.9, 0.2, 1.6],
-  ];
-  for (let p of wheelPositions) {
-    const w = new THREE.Mesh(carWheelGeo, wheelMatShared);
+  // Direksiyon
+  const steeringWheel = new THREE.Mesh(
+    new THREE.TorusGeometry(0.15, 0.05, 8, 16),
+    new THREE.MeshStandardMaterial({ color: 0x333333 })
+  );
+  steeringWheel.position.set(0, type.height + 0.6, 0.3);
+  steeringWheel.rotation.x = Math.PI / 2;
+  g.add(steeringWheel);
+  for (let p of type.wheelPos) {
+    const w = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35, 0.35, 0.4, 6),
+      wheelMatShared
+    );
     w.rotation.z = Math.PI / 2;
     w.position.set(p[0], p[1], p[2]);
+    w.castShadow = true;
     g.add(w);
   }
+  // Farlar
+  const headlightL = new THREE.PointLight(0xffffff, 0.5, 10);
+  headlightL.position.set(-0.5, type.height + 0.2, -2);
+  g.add(headlightL);
+  const headlightR = new THREE.PointLight(0xffffff, 0.5, 10);
+  headlightR.position.set(0.5, type.height + 0.2, -2);
+  g.add(headlightR);
+  // Arka stop
+  const brakeLightL = new THREE.PointLight(0xff0000, 0.3, 5);
+  brakeLightL.position.set(-0.5, type.height + 0.2, 2);
+  g.add(brakeLightL);
+  const brakeLightR = new THREE.PointLight(0xff0000, 0.3, 5);
+  brakeLightR.position.set(0.5, type.height + 0.2, 2);
+  g.add(brakeLightR);
   return g;
 }
 
@@ -150,14 +299,15 @@ let trafficInterval = null;
 
 function createTraffic() {
   if (spawningPaused) return;
-  const colorIndex = Math.floor(Math.random() * 6);
-  const car = createCarModel(colorIndex);
+  const typeIndex = Math.floor(Math.random() * carTypes.length);
+  const car = createCarModel(typeIndex);
   car.position.x = lanes[Math.floor(Math.random() * lanes.length)];
   car.position.z = player.position.z + 400 + Math.random() * 200;
-  car.position.y = 0.4;
+  car.position.y = carTypes[typeIndex].height + 0.1;
   car.userData = {
     speed: 0.2 + Math.random() * 0.35,
     targetLane: car.position.x,
+    type: typeIndex,
   };
   scene.add(car);
   traffic.push(car);
@@ -171,7 +321,11 @@ let speed = 0,
 const keys = {};
 let km = 0;
 
-onkeydown = (e) => (keys[e.key.toLowerCase()] = true);
+onkeydown = (e) => {
+  const k = e.key.toLowerCase();
+  if (k === "c") cameraMode = 1 - cameraMode;
+  else keys[k] = true;
+};
 onkeyup = (e) => (keys[e.key.toLowerCase()] = false);
 
 // Mobile / touch controls binding
@@ -244,21 +398,36 @@ function animate() {
   km += speed * 0.02;
   const kmEl = document.getElementById("km");
   if (kmEl) kmEl.innerText = km.toFixed(2);
+  const speedEl = document.getElementById("speed");
+  if (speedEl) speedEl.innerText = (speed * 100).toFixed(1);
 
   // camera
-  const camDistance = 14,
-    camHeight = 6;
-  camera.position.x =
-    player.position.x - Math.sin(player.rotation.y) * camDistance;
-  camera.position.z =
-    player.position.z - Math.cos(player.rotation.y) * camDistance;
-  camera.position.y = camHeight;
-  camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+  if (cameraMode === 0) {
+    camera.position.x =
+      player.position.x + camDistance * Math.sin(camTheta) * Math.cos(camPhi);
+    camera.position.z =
+      player.position.z + camDistance * Math.cos(camTheta) * Math.cos(camPhi);
+    camera.position.y = player.position.y + 1 + camDistance * Math.sin(camPhi);
+    camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+  } else {
+    // İç kamera
+    camera.position.set(
+      player.position.x,
+      player.position.y + 0.8,
+      player.position.z - 0.5
+    );
+    camera.rotation.y = player.rotation.y;
+    camera.lookAt(
+      player.position.x + Math.sin(player.rotation.y),
+      player.position.y + 0.8,
+      player.position.z + Math.cos(player.rotation.y)
+    );
+  }
 
   // traffic
   for (let i = traffic.length - 1; i >= 0; i--) {
     const t = traffic[i];
-    t.position.z -= t.userData.speed;
+    t.position.z += t.userData.speed;
     if (Math.random() < 0.01)
       t.userData.targetLane = lanes[Math.floor(Math.random() * lanes.length)];
     t.position.x += (t.userData.targetLane - t.position.x) * 0.05;
@@ -295,11 +464,13 @@ function animate() {
   // resume spawning only when all traffic cleared
   if (spawningPaused && traffic.length === 0) spawningPaused = false;
 
-  // recycle road / markers / buildings
+  // recycle road / markers / buildings / ground
   for (let r of roadPieces)
     if (r.position.z < player.position.z - 100) r.position.z += 400;
   for (let m of laneMarkers)
     if (m.position.z < player.position.z - 100) m.position.z += 400;
+  for (let g of groundPieces)
+    if (g.position.z < player.position.z - 100) g.position.z += 600;
   for (let i = buildings.length - 1; i >= 0; i--) {
     const b = buildings[i];
     if (b.position.z < player.position.z - 50) {
