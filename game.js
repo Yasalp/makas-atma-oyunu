@@ -211,7 +211,7 @@ for (let i = 0; i < 6; i++)
 const carTypes = [
   {
     name: "sedan",
-    bodyGeo: new THREE.CylinderGeometry(1, 1, 4.2, 8),
+    bodyGeo: new THREE.BoxGeometry(2, 0.6, 4.2),
     cabinGeo: new THREE.BoxGeometry(1.4, 0.6, 2),
     wheelPos: [
       [-0.9, 0.2, -1.6],
@@ -220,11 +220,10 @@ const carTypes = [
       [0.9, 0.2, 1.6],
     ],
     height: 0.4,
-    bodyRotation: Math.PI / 2, // yatay yapmak için
   },
   {
     name: "suv",
-    bodyGeo: new THREE.CylinderGeometry(1.1, 1.1, 4.5, 8),
+    bodyGeo: new THREE.BoxGeometry(2.2, 0.8, 4.5),
     cabinGeo: new THREE.BoxGeometry(1.6, 0.7, 2.2),
     wheelPos: [
       [-1, 0.3, -1.8],
@@ -233,11 +232,10 @@ const carTypes = [
       [1, 0.3, 1.8],
     ],
     height: 0.5,
-    bodyRotation: Math.PI / 2,
   },
   {
     name: "truck",
-    bodyGeo: new THREE.CylinderGeometry(1.25, 1.25, 6, 8),
+    bodyGeo: new THREE.BoxGeometry(2.5, 1, 6),
     cabinGeo: new THREE.BoxGeometry(1.8, 0.8, 2.5),
     wheelPos: [
       [-1.1, 0.4, -2.5],
@@ -246,11 +244,10 @@ const carTypes = [
       [1.1, 0.4, 2.5],
     ],
     height: 0.6,
-    bodyRotation: Math.PI / 2,
   },
   {
     name: "bus",
-    bodyGeo: new THREE.CylinderGeometry(1.4, 1.4, 8, 8),
+    bodyGeo: new THREE.BoxGeometry(2.8, 1.2, 8),
     cabinGeo: new THREE.BoxGeometry(2, 1, 3),
     wheelPos: [
       [-1.2, 0.5, -3.5],
@@ -259,11 +256,10 @@ const carTypes = [
       [1.2, 0.5, 3.5],
     ],
     height: 0.7,
-    bodyRotation: Math.PI / 2,
   },
   {
     name: "hatchback",
-    bodyGeo: new THREE.CylinderGeometry(0.9, 0.9, 3.8, 8),
+    bodyGeo: new THREE.BoxGeometry(1.8, 0.5, 3.8),
     cabinGeo: new THREE.BoxGeometry(1.2, 0.5, 1.8),
     wheelPos: [
       [-0.8, 0.2, -1.4],
@@ -272,7 +268,6 @@ const carTypes = [
       [0.8, 0.2, 1.4],
     ],
     height: 0.3,
-    bodyRotation: Math.PI / 2,
   },
 ];
 
@@ -284,7 +279,6 @@ function createCarModel(typeIndex = 0) {
     bodyMats[typeIndex % bodyMats.length]
   );
   body.position.y = type.height;
-  if (type.bodyRotation) body.rotation.z = type.bodyRotation;
   body.castShadow = true;
   g.add(body);
   const cabin = new THREE.Mesh(type.cabinGeo, cabinMatShared);
