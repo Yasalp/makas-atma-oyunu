@@ -21,6 +21,8 @@ const camDistance = 14;
 let cameraMode = 0; // 0: dış, 1: iç
 let isTouching = false;
 let shadowsEnabled = true;
+let lastTime = 0;
+let fps = 0;
 
 document.addEventListener("mousedown", (e) => {
   if (e.button === 2) {
@@ -84,7 +86,7 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   powerPreference: "low-power",
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -95,8 +97,8 @@ scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 const sun = new THREE.DirectionalLight(0xffffff, 0.8);
 sun.position.set(20, 30, 10);
 sun.castShadow = true;
-sun.shadow.mapSize.width = 1024;
-sun.shadow.mapSize.height = 1024;
+sun.shadow.mapSize.width = 512;
+sun.shadow.mapSize.height = 512;
 sun.shadow.camera.near = 0.5;
 sun.shadow.camera.far = 500;
 sun.shadow.camera.left = -50;
@@ -180,7 +182,7 @@ function spawnBuilding(x, z) {
   scene.add(main);
   buildings.push(main);
 }
-for (let z = 0; z < 400; z += 80) {
+for (let z = 0; z < 400; z += 120) {
   spawnBuilding(-20, z + Math.random() * 20);
   spawnBuilding(20, z + Math.random() * 20);
 }
@@ -328,7 +330,7 @@ scene.add(player);
 /* TRAFİK */
 const traffic = [];
 const lanes = [-6, -2, 2, 6];
-const MAX_TRAFFIC = 10;
+const MAX_TRAFFIC = 8;
 let spawningPaused = false;
 let trafficInterval = null;
 
@@ -348,7 +350,7 @@ function createTraffic() {
   traffic.push(car);
   if (traffic.length >= MAX_TRAFFIC) spawningPaused = true;
 }
-trafficInterval = setInterval(createTraffic, 2000);
+trafficInterval = setInterval(createTraffic, 3000);
 
 /* KONTROLLER */
 let speed = 0,
@@ -437,6 +439,15 @@ function hit(a, b) {
 function animate() {
   if (gameOver) return;
   requestAnimationFrame(animate);
+
+  // FPS hesapla
+  const now = performance.now();
+  const delta = now - lastTime;
+  if (delta > 0) fps = 1000 / delta;
+  lastTime = now;
+  const fpsEl = document.getElementById("fps");
+  if (fpsEl) fpsEl.innerText = Math.round(fps);
+
   // player control
   if (keys.w) speed = Math.min(speed + 0.02, 1.2);
   if (keys.s) speed = Math.max(speed - 0.02, 0);
