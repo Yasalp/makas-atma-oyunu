@@ -19,6 +19,8 @@ let camTheta = Math.PI,
   camPhi = Math.PI / 4; // Başlangıçta arkadan
 const camDistance = 14;
 let cameraMode = 0; // 0: dış, 1: iç
+let isTouching = false;
+let shadowsEnabled = true;
 
 document.addEventListener("mousedown", (e) => {
   if (e.button === 2) {
@@ -43,6 +45,39 @@ document.addEventListener("mousemove", (e) => {
   }
 });
 document.addEventListener("contextmenu", (e) => e.preventDefault()); // Sağ tıklama menüsünü engelle
+
+// Dokunmatik kamera kontrolü
+document.addEventListener(
+  "touchstart",
+  (e) => {
+    if (e.touches.length === 1 && cameraMode === 0) {
+      // Tek parmak, dış kamera
+      isTouching = true;
+      mouseX = e.touches[0].clientX;
+      mouseY = e.touches[0].clientY;
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
+document.addEventListener(
+  "touchmove",
+  (e) => {
+    if (isTouching && e.touches.length === 1) {
+      const deltaX = e.touches[0].clientX - mouseX;
+      const deltaY = e.touches[0].clientY - mouseY;
+      camTheta -= deltaX * 0.005;
+      camPhi = Math.max(0.1, Math.min(Math.PI / 2, camPhi - deltaY * 0.005));
+      mouseX = e.touches[0].clientX;
+      mouseY = e.touches[0].clientY;
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
+document.addEventListener("touchend", (e) => {
+  if (e.changedTouches.length === 1) isTouching = false;
+});
 
 /* RENDER */
 const renderer = new THREE.WebGLRenderer({
@@ -367,6 +402,22 @@ function bindMobileControls() {
 if (document.readyState === "complete" || document.readyState === "interactive")
   bindMobileControls();
 else document.addEventListener("DOMContentLoaded", bindMobileControls);
+
+// Mobil butonlar
+document.addEventListener("DOMContentLoaded", () => {
+  const cameraBtn = document.getElementById("camera-btn");
+  if (cameraBtn)
+    cameraBtn.addEventListener("click", () => {
+      cameraMode = 1 - cameraMode;
+    });
+  const graphicsBtn = document.getElementById("graphics-btn");
+  if (graphicsBtn)
+    graphicsBtn.addEventListener("click", () => {
+      shadowsEnabled = !shadowsEnabled;
+      renderer.shadowMap.enabled = shadowsEnabled;
+      graphicsBtn.innerText = shadowsEnabled ? "Grafik" : "Grafik (Kapalı)";
+    });
+});
 
 /* CAN ve ÇARPIŞMA */
 let playerHP = 100;
