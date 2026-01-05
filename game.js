@@ -451,7 +451,7 @@ function animate() {
   if (fpsEl) fpsEl.innerText = Math.round(fps);
 
   // player control
-  if (keys.w) speed = Math.min(speed + 0.02, 2.0);
+  if (keys.w) speed = Math.min(speed + 0.03, 4.0);
   if (keys.s) speed = Math.max(speed - 0.02, 0);
   speed *= 0.98;
   if (keys.a) rot += 0.02;
