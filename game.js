@@ -1,6 +1,78 @@
-/* SAHNE */
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+/* MENU */
+let selectedVehicle = 1; // 0: motor, 1: car, 2: jeep
+let selectedDifficulty = 1; // 0: easy, 1: normal, 2: hard
+let player; // global
+
+document.addEventListener("DOMContentLoaded", () => {
+  const menu = document.getElementById("menu");
+  const vehicleButtons = document.querySelectorAll(
+    "#menu .options button[id^='vehicle-']"
+  );
+  const difficultyButtons = document.querySelectorAll(
+    "#menu .options button[id^='difficulty-']"
+  );
+  const startBtn = document.getElementById("start-btn");
+
+  // Taşıt seçimi
+  vehicleButtons.forEach((btn, index) => {
+    btn.addEventListener("click", () => {
+      vehicleButtons.forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selectedVehicle = index;
+    });
+  });
+  document.getElementById("vehicle-car").classList.add("selected"); // varsayılan
+
+  // Zorluk seçimi
+  difficultyButtons.forEach((btn, index) => {
+    btn.addEventListener("click", () => {
+      difficultyButtons.forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selectedDifficulty = index;
+    });
+  });
+  document.getElementById("difficulty-normal").classList.add("selected"); // varsayılan
+
+  // Başlat
+  startBtn.addEventListener("click", () => {
+    menu.style.display = "none";
+    startGame();
+  });
+});
+
+function startGame() {
+  // Oyunu başlat, player'ı seçilen taşıtla oluştur
+  const player = createCarModel(selectedVehicle, true);
+  player.position.y = carTypes[selectedVehicle].height + 0.1;
+  scene.add(player);
+
+  // Zorluk ayarları
+  let laneChangeChance = 0.01; // normal
+  if (selectedDifficulty === 0) laneChangeChance = 0.005; // easy
+  else if (selectedDifficulty === 2) laneChangeChance = 0.02; // hard
+
+  // Trafik oluşturma
+  function createTraffic() {
+    if (spawningPaused) return;
+    const typeIndex = Math.floor(Math.random() * carTypes.length);
+    const car = createCarModel(typeIndex);
+    car.position.x = lanes[Math.floor(Math.random() * lanes.length)];
+    car.position.z = player.position.z + 400 + Math.random() * 200;
+    car.position.y = carTypes[typeIndex].height + 0.1;
+    car.userData = {
+      speed: 0.2 + Math.random() * 0.35,
+      targetLane: car.position.x,
+      laneChangeChance,
+    };
+    scene.add(car);
+    traffic.push(car);
+    if (traffic.length >= MAX_TRAFFIC) spawningPaused = true;
+  }
+  trafficInterval = setInterval(createTraffic, 2000);
+
+  // Animasyon başlat
+  animate();
+}
 
 /* KAMERA */
 const camera = new THREE.PerspectiveCamera(
@@ -212,6 +284,17 @@ for (let i = 0; i < 6; i++)
 
 const carTypes = [
   {
+    name: "motor",
+    bodyGeo: new THREE.CylinderGeometry(0.4, 0.4, 2, 8),
+    cabinGeo: new THREE.BoxGeometry(0.6, 0.4, 0.8),
+    wheelPos: [
+      [0, 0.2, -0.8],
+      [0, 0.2, 0.8],
+    ],
+    height: 0.3,
+    bodyRotation: Math.PI / 2,
+  },
+  {
     name: "sedan",
     bodyGeo: new THREE.BoxGeometry(2, 0.6, 4.2),
     cabinGeo: new THREE.BoxGeometry(1.4, 0.6, 2),
@@ -324,10 +407,7 @@ function createCarModel(typeIndex = 0, isPlayer = false) {
   return g;
 }
 
-/* OYUNCU */
-const player = createCarModel(0, true);
-player.position.y = 0.5;
-scene.add(player);
+/* OYUNCU - startGame'te oluşturuluyor */
 
 /* TRAFİK */
 const traffic = [];
@@ -335,24 +415,6 @@ const lanes = [-6, -2, 2, 6];
 const MAX_TRAFFIC = 8;
 let spawningPaused = false;
 let trafficInterval = null;
-
-function createTraffic() {
-  if (spawningPaused) return;
-  const typeIndex = Math.floor(Math.random() * carTypes.length);
-  const car = createCarModel(typeIndex);
-  car.position.x = lanes[Math.floor(Math.random() * lanes.length)];
-  car.position.z = player.position.z + 400 + Math.random() * 200;
-  car.position.y = carTypes[typeIndex].height + 0.1;
-  car.userData = {
-    speed: 0.2 + Math.random() * 0.35,
-    targetLane: car.position.x,
-    type: typeIndex,
-  };
-  scene.add(car);
-  traffic.push(car);
-  if (traffic.length >= MAX_TRAFFIC) spawningPaused = true;
-}
-trafficInterval = setInterval(createTraffic, 3000);
 
 /* KONTROLLER */
 let speed = 0,

@@ -6,22 +6,53 @@
       name="viewport"
       content="width=device-width,initial-scale=1,maximum-scale=1"
     />
-    <title>Makas Atma Oyunu (Türkçe)</title>
+    <title>3D Trafikli Araba Oyunu</title>
     <style>
       body {
         margin: 0;
         overflow: hidden;
         background: #000;
       }
-      #hud {
-        position: absolute;
-        top: 10px;
-        left: 10px;
+      #menu {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
         color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         font-family: Arial;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 8px 12px;
-        border-radius: 8px;
+        z-index: 1000;
+      }
+      #menu h1 {
+        margin-bottom: 20px;
+      }
+      #menu .section {
+        margin: 20px 0;
+      }
+      #menu .options {
+        display: flex;
+        gap: 10px;
+      }
+      #menu button {
+        padding: 10px 20px;
+        background: #444;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #menu button.selected {
+        background: #666;
+      }
+      #start-btn {
+        margin-top: 20px;
+        padding: 15px 30px;
+        background: #007bff;
       }
       /* Mobile controls */
       #mobile-controls {
@@ -55,7 +86,35 @@
     </style>
   </head>
   <body>
+    <div id="menu">
+      <h1>3D Trafikli Araba Oyunu</h1>
+      <div class="section">
+        <h2>Taşıt Seç</h2>
+        <div class="options">
+          <button id="vehicle-motor">Motor</button>
+          <button id="vehicle-car">Araba</button>
+          <button id="vehicle-jeep">Jip</button>
+        </div>
+      </div>
+      <div class="section">
+        <h2>Zorluk Seç</h2>
+        <div class="options">
+          <button id="difficulty-easy">Kolay</button>
+          <button id="difficulty-normal">Normal</button>
+          <button id="difficulty-hard">Zor</button>
+        </div>
+      </div>
+      <button id="start-btn">Başlat</button>
+    </div>
     <div id="hud">
+      KM: <span id="km">0.0</span><br />
+      Hız: <span id="speed">0.0</span><br />
+      FPS: <span id="fps">0</span><br />
+      Can: <span id="hp">100</span><br />
+      W A S D = Sür, C = Kamera<br />
+      <button id="camera-btn" style="margin-top: 5px; padding: 4px 8px; font-size: 12px;">Kamera</button>
+      <button id="graphics-btn" style="margin-top: 5px; padding: 4px 8px; font-size: 12px;">Grafik</button>
+    </div>
       KM: <span id="km">0.0</span><br />
       Hız: <span id="speed">0.0</span><br />
       FPS: <span id="fps">0</span><br />
