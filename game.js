@@ -273,7 +273,7 @@ const carTypes = [
   },
 ];
 
-function createCarModel(typeIndex = 0) {
+function createCarModel(typeIndex = 0, isPlayer = false) {
   const type = carTypes[typeIndex % carTypes.length];
   const g = new THREE.Group();
   const body = new THREE.Mesh(
@@ -305,25 +305,27 @@ function createCarModel(typeIndex = 0) {
     w.castShadow = true;
     g.add(w);
   }
-  // Farlar
-  const headlightL = new THREE.PointLight(0xffffff, 0.5, 10);
-  headlightL.position.set(-0.5, type.height + 0.2, -2);
-  g.add(headlightL);
-  const headlightR = new THREE.PointLight(0xffffff, 0.5, 10);
-  headlightR.position.set(0.5, type.height + 0.2, -2);
-  g.add(headlightR);
-  // Arka stop
-  const brakeLightL = new THREE.PointLight(0xff0000, 0.3, 5);
-  brakeLightL.position.set(-0.5, type.height + 0.2, 2);
-  g.add(brakeLightL);
-  const brakeLightR = new THREE.PointLight(0xff0000, 0.3, 5);
-  brakeLightR.position.set(0.5, type.height + 0.2, 2);
-  g.add(brakeLightR);
+  if (isPlayer) {
+    // Farlar
+    const headlightL = new THREE.PointLight(0xffffff, 0.5, 10);
+    headlightL.position.set(-0.5, type.height + 0.2, -2);
+    g.add(headlightL);
+    const headlightR = new THREE.PointLight(0xffffff, 0.5, 10);
+    headlightR.position.set(0.5, type.height + 0.2, -2);
+    g.add(headlightR);
+    // Arka stop
+    const brakeLightL = new THREE.PointLight(0xff0000, 0.3, 5);
+    brakeLightL.position.set(-0.5, type.height + 0.2, 2);
+    g.add(brakeLightL);
+    const brakeLightR = new THREE.PointLight(0xff0000, 0.3, 5);
+    brakeLightR.position.set(0.5, type.height + 0.2, 2);
+    g.add(brakeLightR);
+  }
   return g;
 }
 
 /* OYUNCU */
-const player = createCarModel(0);
+const player = createCarModel(0, true);
 player.position.y = 0.5;
 scene.add(player);
 
