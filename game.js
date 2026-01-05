@@ -205,8 +205,8 @@ for (let i = 0; i < 6; i++)
   bodyMats.push(
     new THREE.MeshStandardMaterial({
       color: new THREE.Color().setHSL(Math.random(), 0.5, 0.35),
-      metalness: 0.2,
-      roughness: 0.5,
+      metalness: 0.4,
+      roughness: 0.3,
     })
   );
 
@@ -451,11 +451,11 @@ function animate() {
   if (fpsEl) fpsEl.innerText = Math.round(fps);
 
   // player control
-  if (keys.w) speed = Math.min(speed + 0.02, 1.2);
+  if (keys.w) speed = Math.min(speed + 0.02, 2.0);
   if (keys.s) speed = Math.max(speed - 0.02, 0);
   speed *= 0.98;
-  if (keys.a) rot += 0.04;
-  if (keys.d) rot -= 0.04;
+  if (keys.a) rot += 0.02;
+  if (keys.d) rot -= 0.02;
   player.rotation.y = rot;
   player.position.x += Math.sin(rot) * speed;
   player.position.z += Math.cos(rot) * speed;
