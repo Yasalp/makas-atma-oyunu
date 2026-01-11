@@ -41,10 +41,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function startGame() {
-  document.body.appendChild(renderer.domElement);
-
   // Oyunu başlat, player'ı seçilen taşıtla oluştur
-  player = createCarModel(selectedVehicle, true);
+  const player = createCarModel(selectedVehicle, true);
   player.position.y = carTypes[selectedVehicle].height + 0.1;
   scene.add(player);
 
@@ -164,6 +162,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
 
 /* IŞIK */
 scene.add(new THREE.AmbientLight(0xffffff, 0.4));
